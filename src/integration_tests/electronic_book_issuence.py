@@ -25,7 +25,7 @@ class TestBookReturn:
                     assert True
 
     def test_electronic_book_not_exist(self):
-        # Тест проверяет ситуацию, когда запрашиваемая электронная версия книги отсутствует в ЬД
+        # Тест проверяет ситуацию, когда запрашиваемая электронная версия книги отсутствует в БД
         books_what_reader_needs = [{'author':'Garry','title':'Garry Adventures','type':'ELECTRONIC'}]
         exists_books = [{'author':'Garry','title':'Garry Adventures','type':'PAPER','count':'5'},
                         {'author':'Jack','title':'Jack Adventures','type':'PAPER','count':'2'},
@@ -47,7 +47,7 @@ class TestBookReturn:
                 assert True
 
     def test_electronic_book_exist(self):
-        # Тест проверяет ситуацию, когда запрашиваемая электронная версия книги есть в ЬД
+        # Тест проверяет ситуацию, когда запрашиваемая электронная версия книги есть в БД
         books_what_reader_needs = [{'author':'Garry','title':'Garry Adventures','type':'ELECTRONIC'}]
         exists_books = [{'author':'Garry','title':'Garry Adventures','type':'ELECTRONIC','count':'5'},
                         {'author':'Jack','title':'Jack Adventures','type':'PAPER','count':'2'},
@@ -77,7 +77,7 @@ class TestBookReturn:
         exists_books = [{'author': 'Garry', 'title': 'Garry Adventures', 'type': 'ELECTRONIC', 'url': 'https://garryurl'},
                         {'author': 'Jack', 'title': 'Jack Adventures', 'type': 'PAPER', 'count': '2'},
                         {'author': 'Willy', 'title': 'Willy Adventures', 'type': 'ELECTRONIC','url': 'https://willyurl'}]
-
+        array_of_books = list()
         for book_need in books_what_reader_needs:
             for book_exist in exists_books:
                 value = list(book_need.values())
@@ -88,12 +88,13 @@ class TestBookReturn:
                     getting_book = book_exist
                     link_life = datetime.date.today() + datetime.timedelta(days=14)
                     getting_book.update({'link_life':link_life})
-                    reader.update({'books': getting_book})
+                    array_of_books.append(getting_book)
                     print(reader)
                     break
                 else:
                     pass
-        if reader['books'] != None:
+        reader.update({'books': array_of_books})
+        if len(reader['books']) == 2:
             assert True
         else:
             assert False
