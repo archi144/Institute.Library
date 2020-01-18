@@ -64,6 +64,35 @@ class Table(tk.Frame):
         roleEntry.place(x=120, y=150)
         self.roleEntry = roleEntry
 
+    def createReaderBooksShowWin(self):
+        self.ReaderBooksWin = tk.Toplevel(self)
+
+        postgres = Postgres()
+        item = self.table.selection()
+        massiv = self.table.item(item)['values']
+        self.ReaderBooksWin.title(f"№{massiv[0]} {massiv[1]} {massiv[2]}")
+        id = massiv[0]
+        print(massiv)
+        books = postgres.returnReaderBooks(id)
+        print(books)
+        self.BooksTable = Table(self.ReaderBooksWin, headings=(
+            'Название книги', 'Автор','Дата возврата книги', 'Тип книги',),
+                                rows=(books))
+        self.BooksTable.pack()
+
+    def createBooksWin(self):
+        self.BooksWin = tk.Toplevel(self)
+        postgres = Postgres()
+        books = postgres.returnAllBooks()
+        print(books)
+        self.BooksTable = Table(self.BooksWin, headings=(
+            'ID', 'Название книги', 'Автор', 'Количество', 'Ссылка', 'Тип',),
+                      rows=(books))
+        self.BooksTable.pack()
+        givBookButton = tk.Button(self.BooksWin, text="Выдать книгу", command=self.givBook, height=3,
+                              width=15)
+        givBookButton.pack(side=tk.BOTTOM, padx=12, pady=20)
+
 
     def update(self):
         postgres = Postgres()
@@ -75,25 +104,21 @@ class Table(tk.Frame):
         for row in users:
             self.table.insert('', tk.END, values=tuple(row))
 
-
-    def addUser(self):
+    def updateBooksWin(self):
         postgres = Postgres()
-        login = self.loginEntry.get()
-        password = self.passwordEntry.get()
-        role = self.roleEntry.get()
-        badInput = False
-        errorMessage = "Пожалуйста, введите"
-        if not login:
-            errorMessage+= " логин"
-            badInput = True
-        if not password:
-            errorMessage+= " пароль"
-            badInput = True
-        if not role:
-            errorMessage+= " роль"
-            badInput = True
-        if badInput:
-            answer = mb.showerror(parent=self.window,message=errorMessage)
-        else:
-            postgres.addUser(login,password,role)
-            self.update()
+        books = postgres.returnAllBooks()
+        print(books)
+        self.BooksTable.table.delete(*self.BooksTable.table.get_children())
+        for row in books:
+            self.BooksTable.table.insert('', tk.END, values=tuple(row))
+
+    def givBook(self):
+        postgres = Postgres()
+        item = self.BooksTable.table.selection()
+        massiv = self.BooksTable.table.item(item)['values']
+        id_book = massiv[0]
+        item = self.table.selection()
+        massiv = self.table.item(item)['values']
+        id_reader = massiv[0]
+        postgres.givPaperBook(id_reader,id_book)
+        self.updateBooksWin()

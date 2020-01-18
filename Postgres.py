@@ -32,3 +32,33 @@ class Postgres:
             (login, password, role))
         self.connect.commit()
 
+    def returnAllBooks(self):
+        self.cursor.execute(
+            """SELECT books."id","name","author","countofvolumes","link","type" FROM books
+            FULL OUTER JOIN paperbook p on books.id = p.id_book
+            FULL OUTER JOIN electronicbook e on books.id = e.id_book
+            ORDER BY books.id
+            """
+        )
+        return self.cursor.fetchall()
+
+    def returnReaderBooks(self,id_reader):
+        self.cursor.execute(
+            f"""SELECT books."name","author","datereturn","type"
+                from books INNER JOIN readers_books rb on books.id = rb.id_book
+                inner join readers r on r.id = rb.id_reader
+                WHERE r.id={id_reader}
+            """
+        )
+        return self.cursor.fetchall()
+
+
+    def givPaperBook(self,id_reader,id_book):
+        date = datetime.today() + timedelta(days=14)
+        print(date)
+        self.cursor.execute(
+            f"""UPDATE paperbook SET countofvolumes=countofvolumes-1 WHERE id_book={id_book};""")
+        self.cursor.execute(
+            "INSERT INTO readers_books(id_reader,id_book,datereturn) VALUES(%s, %s, %s)",(id_reader,id_book,date))
+        self.connect.commit()
+
