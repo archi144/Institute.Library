@@ -52,7 +52,6 @@ class Postgres:
         )
         return self.cursor.fetchall()
 
-
     def givPaperBook(self,id_reader,id_book):
         date = datetime.today() + timedelta(days=14)
         print(date)
@@ -67,4 +66,11 @@ class Postgres:
         print(date)
         self.cursor.execute(
             "INSERT INTO readers_books(id_reader,id_book,datereturn) VALUES(%s, %s, %s)", (id_reader, id_book, date))
+        self.connect.commit()
+
+    def returnPaperBook(self,id_reader,id_book,datereturn):
+        self.cursor.execute(
+            f"""UPDATE paperbook SET countofvolumes=countofvolumes+1 WHERE id_book={id_book};""")
+        self.cursor.execute(
+        "DELETE FROM readers_books WHERE id_reader=%s AND id_book=%s AND datereturn=%s", (id_reader, id_book, datereturn))
         self.connect.commit()
