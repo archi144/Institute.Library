@@ -76,8 +76,11 @@ class Table(tk.Frame):
         books = postgres.returnReaderBooks(id)
         print(books)
         self.BooksTable = Table(self.ReaderBooksWin, headings=(
-            'Название книги', 'Автор','Дата возврата книги', 'Тип книги',),
+            'ID','Название книги', 'Автор','Дата возврата книги', 'Тип книги',),
                                 rows=(books))
+        returnBookButton = tk.Button(self.ReaderBooksWin, text="Принять книгу", command=self.returnBook, height=3,
+                                  width=15)
+        returnBookButton.pack(side=tk.BOTTOM, padx=12, pady=20)
         self.BooksTable.pack()
 
     def createBooksWin(self):
@@ -85,6 +88,9 @@ class Table(tk.Frame):
         postgres = Postgres()
         books = postgres.returnAllBooks()
         print(books)
+        item = self.table.selection()
+        massiv = self.table.item(item)['values']
+        self.BooksWin.title(f"№{massiv[0]} {massiv[1]} {massiv[2]}")
         self.BooksTable = Table(self.BooksWin, headings=(
             'ID', 'Название книги', 'Автор', 'Количество', 'Ссылка', 'Тип',),
                       rows=(books))
@@ -112,13 +118,20 @@ class Table(tk.Frame):
         for row in books:
             self.BooksTable.table.insert('', tk.END, values=tuple(row))
 
+    def returnBook(self):
+        pass
+
     def givBook(self):
         postgres = Postgres()
         item = self.BooksTable.table.selection()
-        massiv = self.BooksTable.table.item(item)['values']
-        id_book = massiv[0]
+        massivofbooks = self.BooksTable.table.item(item)['values']
+        id_book = massivofbooks[0]
         item = self.table.selection()
         massiv = self.table.item(item)['values']
         id_reader = massiv[0]
-        postgres.givPaperBook(id_reader,id_book)
+        if massivofbooks[-1] == 'Печатная':
+            postgres.givPaperBook(id_reader,id_book)
+        else:
+            postgres.givElectroBook(id_reader,id_book)
         self.updateBooksWin()
+

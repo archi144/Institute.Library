@@ -44,7 +44,7 @@ class Postgres:
 
     def returnReaderBooks(self,id_reader):
         self.cursor.execute(
-            f"""SELECT books."name","author","datereturn","type"
+            f"""SELECT books."id",books."name","author","datereturn","type"
                 from books INNER JOIN readers_books rb on books.id = rb.id_book
                 inner join readers r on r.id = rb.id_reader
                 WHERE r.id={id_reader}
@@ -62,3 +62,9 @@ class Postgres:
             "INSERT INTO readers_books(id_reader,id_book,datereturn) VALUES(%s, %s, %s)",(id_reader,id_book,date))
         self.connect.commit()
 
+    def givElectroBook(self,id_reader,id_book):
+        date = datetime.today() + timedelta(days=14)
+        print(date)
+        self.cursor.execute(
+            "INSERT INTO readers_books(id_reader,id_book,datereturn) VALUES(%s, %s, %s)", (id_reader, id_book, date))
+        self.connect.commit()
