@@ -74,3 +74,12 @@ class Postgres:
         self.cursor.execute(
         "DELETE FROM readers_books WHERE id_reader=%s AND id_book=%s AND datereturn=%s", (id_reader, id_book, datereturn))
         self.connect.commit()
+
+    def bookOnHand(self,id_reader,id_book):
+        self.cursor.execute(
+            f"""SELECT * FROM readers_books WHERE id_book={id_book} AND id_reader={id_reader};""")
+        result = self.cursor.fetchall()
+        if result:
+            return True
+        else:
+            return False

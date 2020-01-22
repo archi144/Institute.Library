@@ -1,4 +1,4 @@
-dbname = Library
+dbname = MongoLibrary
 user = archi144
 password = mypassword
 host = localhost
