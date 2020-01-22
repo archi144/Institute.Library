@@ -1,8 +1,87 @@
 import tkinter as tk
 import tkinter.ttk as ttk
+from pymongo import *
 from tkinter import messagebox as mb
-from Postgres import *
-import psycopg2
+import datetime
+from time import *
+from tkinter import *
+
+
+def return_collection(collection):
+    client = MongoClient()
+    db = client['MongoLibrary']
+    collections = db[collection]
+    massiv = list()
+    for item in collections.find():
+        item.pop('_id')
+        massiv.append(item.values())
+    return massiv
+
+def return_booksOfReader(id_reader):
+    books = db.readers.find_one({"id": id_reader}, {"books": 1, "_id": 0})
+    massiv = list()
+    for book in books.values():
+        for item in book:
+            massiv.append(item.values())
+    return tuple(massiv)
+
+
+def return_bookOfReader(id_reader,id_book):
+    books = db.readers.find_one({"id": id_reader}, {"books": 1, "_id": 0})
+    massiv = list()
+    for book in books.values():
+        for item in book:
+            if item['id'] == id_book:
+                massiv.append(item.values())
+    return tuple(massiv)
+
+
+def bookOnHandsOfReader(id_reader,id_book):
+    books = db.readers.find_one({"id": id_reader}, {"books": 1, "_id": 0})
+    for book in books.values():
+        for item in book:
+            if item['id'] == id_book:
+                return True
+    return False
+
+def readerClear(id_reader):
+    books = db.readers.find_one({"id": id_reader}, {"books": 1, "_id": 0})
+    if not books['books']:
+        return True
+    return False
+
+def isReaderViolator(id_reader):
+    violation = db.readers.find_one({"id": id_reader}, {"violator": 1, "_id": 0})
+    if violation['violator']:
+        return True
+    return False
+
+
+
+def MongoMain():
+    root = tk.Tk()
+    client = MongoClient()
+    global db
+    db = client['MongoLibrary']
+    readers = db['readers']
+    print(readerClear(1))
+    massiv = list()
+    massiv = return_collection('readers')
+    table = Table(root, headings=(
+    'Читательский билет №', 'Фамилия', 'Имя', 'Отчество', 'Студ. билет', 'Срок окончания билета','Нарушитель'), rows=(massiv))
+    db.books.create_index([('id', ASCENDING)], unique=True)
+    table.pack()
+    addbutton = tk.Button(root, text="Выдать читателю книгу", command=lambda: table.createBooksWin(),
+                                      height=3, width=20)
+    addbutton.pack(side=tk.RIGHT, padx=12, pady=20)
+    returnbookbutton= tk.Button(root, text="Принять книги читателя", command=lambda: table.createReaderBooksShowWin(),
+                                      height=3, width=20)
+    returnbookbutton.pack(side=tk.LEFT, padx=12, pady=20)
+    root.mainloop()
+
+
+
+
 
 class Table(tk.Frame):
     def __init__(self, parent=None, headings=tuple(), rows=tuple()):
@@ -67,16 +146,14 @@ class Table(tk.Frame):
     def createReaderBooksShowWin(self):
         self.ReaderBooksWin = tk.Toplevel(self)
 
-        postgres = Postgres()
         item = self.table.selection()
         massiv = self.table.item(item)['values']
         self.ReaderBooksWin.title(f"№{massiv[0]} {massiv[1]} {massiv[2]}")
-        id = massiv[0]
+        id_reader = massiv[0]
         print(massiv)
-        books = postgres.returnReaderBooks(id)
-        print(books)
+        books = return_booksOfReader(id_reader)
         self.readerBooksTable = Table(self.ReaderBooksWin, headings=(
-            'ID','Название книги', 'Автор','Дата возврата книги', 'Тип книги',),
+            'ID','Название книги', 'Автор','Ссылка на книгу', 'Тип книги','Дата возврата',),
                                 rows=(books))
         returnBookButton = tk.Button(self.ReaderBooksWin, text="Принять книгу", command=self.returnBook, height=3,
                                   width=15)
@@ -85,8 +162,8 @@ class Table(tk.Frame):
 
     def createBooksWin(self):
         self.BooksWin = tk.Toplevel(self)
-        postgres = Postgres()
-        books = postgres.returnAllBooks()
+
+        books = return_collection('books')
         print(books)
         item = self.table.selection()
         massiv = self.table.item(item)['values']
@@ -101,59 +178,67 @@ class Table(tk.Frame):
 
 
     def update(self):
-        postgres = Postgres()
-        conn = postgres.returnConnect()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users")
-        users = cursor.fetchall()
+        users = return_collection('readers')
         self.table.delete(*self.table.get_children())
         for row in users:
             self.table.insert('', tk.END, values=tuple(row))
 
     def updateBooksWin(self):
-        postgres = Postgres()
-        books = postgres.returnAllBooks()
+        books = return_collection('books')
         print(books)
         self.BooksTable.table.delete(*self.BooksTable.table.get_children())
         for row in books:
             self.BooksTable.table.insert('', tk.END, values=tuple(row))
 
     def updateReaderBooksShowWin(self):
-        postgres = Postgres()
         item = self.table.selection()
         massiv = self.table.item(item)['values']
         id_reader = massiv[0]
-        books = postgres.returnReaderBooks(id_reader)
+        books = return_booksOfReader(id_reader)
         self.readerBooksTable.table.delete(*self.readerBooksTable.table.get_children())
         for row in books:
             self.readerBooksTable.table.insert('', tk.END, values=tuple(row))
 
     def returnBook(self):
-        postgres = Postgres()
         item = self.readerBooksTable.table.selection()
         massivofbooks = self.readerBooksTable.table.item(item)['values']
         id_book = massivofbooks[0]
-        datereturn = massivofbooks[3]
+        datereturn = massivofbooks[-1]
         item = self.table.selection()
         massiv = self.table.item(item)['values']
         id_reader = massiv[0]
-        postgres.returnPaperBook(id_reader,id_book,datereturn)
+        book = db.books.find_one({"id": id_book}, {"_id": 0, "count": 0})
+        if datetime.datetime.utcnow() > datetime.datetime.strptime(datereturn,"%Y-%m-%d %H:%M:%S.%f"):
+            mb.showerror(parent=self.readerBooksTable,message="Возврат книги просрочен, пользователь объявлен нарушителем")
+            if readerClear(id_reader):
+                db.readers.update({"id":id_reader},{"$set":{"violator":True}})
+                self.update()
+                sleep(1)
+        db.readers.update({'id': id_reader}, {"$pull": {"books": book}})
+        if massivofbooks[-2] == 'Печатная':
+            db.books.update({'id': id_book}, {"$inc": {"count": +1}})
         self.updateReaderBooksShowWin()
 
     def givBook(self):
-        postgres = Postgres()
         item = self.BooksTable.table.selection()
         massivofbooks = self.BooksTable.table.item(item)['values']
         id_book = massivofbooks[0]
         item = self.table.selection()
         massiv = self.table.item(item)['values']
         id_reader = massiv[0]
-        if postgres.bookOnHand(id_reader,id_book):
-            mb.showerror(parent=self, message="Эта книга уже есть у пользователя")
+        book = db.books.find_one({"id": id_book}, {"_id": 0, "count": 0})
+        if isReaderViolator(id_reader):
+            mb.showerror(parent=self, message="Этот пользователь является нарушителем. Для возобновления выдачи книг ему необходимо вернуть взятые ранее книги")
         else:
-            if massivofbooks[-1] == 'Печатная':
-                postgres.givPaperBook(id_reader,id_book)
+            if bookOnHandsOfReader(id_reader,id_book):
+                mb.showerror(parent=self, message="Эта книга уже есть у пользователя")
             else:
-                postgres.givElectroBook(id_reader,id_book)
-        self.updateBooksWin()
+                book["datereturn"] =  datetime.datetime.utcnow() + datetime.timedelta(days=14)
+                if massivofbooks[-1] == 'Печатная':
+                    db.readers.update({'id': id_reader}, {"$push": {"books": book}})
+                    db.books.update({'id': id_book}, {"$inc": {"count": -1}})
+                else:
+                    book = db.books.find_one({"id": id_book}, {"_id": 0, "count": 0})
+                    db.readers.update({'id': id_reader}, {"$push": {"books": book}})
+                self.updateBooksWin()
 

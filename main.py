@@ -4,6 +4,7 @@ from tkinter import messagebox as mb
 from SysAdminClass import *
 from LibraryAdminClass import *
 from LibraryWorkerClass import *
+import MongoDB
 SYSADMIN = "Системный администратор"
 LIBADMIN = "Администратор библиотеки"
 LIBWORKER = "Библиотекарь"
@@ -16,8 +17,18 @@ conn = psycopg2.connect(dbname='Library', user='archi144', password='mypassword'
 cursor = conn.cursor()
 
 
+
 def validate():
-    libraryworker = LibraryWorker()
+    f = open('config', 'r')
+    text = f.readlines()
+    db = text[0].split('=')
+    db = db[1].strip()
+    if db == "MongoLibrary":
+        mongo = MongoDB.MongoMain()
+    elif db == "Library":
+        libraryworker = LibraryWorker()
+    else:
+        mb.showerror(parent=root, message=f"Базы данных {db} не существует")
     #admin = SysAdmin()
     # library = LibraryAdmin()
    # login = loginTxt.get()
@@ -46,3 +57,7 @@ passwordTxt = StringVar()
 passwordEntry = Entry(textvariable = passwordTxt,font="16pt", fg="black", show="*").place(x=140, y=120)
 loginButton = Button(text="Войти", fg="black", command=validate).place(x=150, y=200, height=50, width=150)
 root.mainloop()
+
+
+def printa():
+    print("a")
