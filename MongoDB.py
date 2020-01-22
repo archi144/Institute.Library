@@ -228,10 +228,10 @@ class Table(tk.Frame):
         id_reader = massiv[0]
         book = db.books.find_one({"id": id_book}, {"_id": 0, "count": 0})
         if isReaderViolator(id_reader):
-            mb.showerror(parent=self, message="Этот пользователь является нарушителем. Для возобновления выдачи книг ему необходимо вернуть взятые ранее книги")
+            mb.showerror(parent=self.BooksTable, message="Этот пользователь является нарушителем. Для возобновления выдачи книг ему необходимо вернуть взятые ранее книги")
         else:
             if bookOnHandsOfReader(id_reader,id_book):
-                mb.showerror(parent=self, message="Эта книга уже есть у пользователя")
+                mb.showerror(parent=self.BooksTable, message="Эта книга уже есть у пользователя")
             else:
                 book["datereturn"] =  datetime.datetime.utcnow() + datetime.timedelta(days=14)
                 if massivofbooks[-1] == 'Печатная':
