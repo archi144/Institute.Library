@@ -5,6 +5,7 @@ from SysAdminClass import *
 from LibraryAdminClass import *
 from LibraryWorkerClass import *
 import MongoDB
+import SQLite
 SYSADMIN = "Системный администратор"
 LIBADMIN = "Администратор библиотеки"
 LIBWORKER = "Библиотекарь"
@@ -12,10 +13,6 @@ LIBWORKER = "Библиотекарь"
 root = Tk()
 root.title("Университетская библиотека")
 root.geometry("400x300")
-
-conn = psycopg2.connect(dbname='Library', user='archi144', password='mypassword', host='localhost')
-cursor = conn.cursor()
-
 
 
 def validate():
@@ -27,6 +24,8 @@ def validate():
         mongo = MongoDB.MongoMain()
     elif db == "Library":
         libraryworker = LibraryWorker()
+    elif db == "IntegrationLibrary":
+        sqlite = SQLite.SQLiteMain()
     else:
         mb.showerror(parent=root, message=f"Базы данных {db} не существует")
     #admin = SysAdmin()

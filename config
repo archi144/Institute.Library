@@ -1,4 +1,4 @@
-dbname = MongoLibrary
+dbname = IntegrationLibrary
 user = archi144
 password = mypassword
 host = localhost
