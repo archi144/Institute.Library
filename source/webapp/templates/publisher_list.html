@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Издатели{% endblock %}
+{% block content %}
+    {% for publisher in publisher_list %}
+        <h4><a href="{% url 'webapp:publisher_detail' publisher.pk %}">{{ publisher.name }}</a></h4>
+        <p>{{ publisher.phone }}</p>
+        <hr>
+    {% endfor %}
+{% endblock %}

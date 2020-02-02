@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Заявки{% endblock %}
+{% block content %}
+    {% for request in request_list %}
+        <h4><a href="{% url 'webapp:request_detail' request.pk %}">Заявка №{{ request.id }}</a></h4>
+        <p>{{ request.type }} книги "{{ request.request_book.title }}"</p>
+        <hr>
+    {% endfor %}
+{% endblock %}

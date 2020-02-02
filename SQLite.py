@@ -156,7 +156,7 @@ class Table(tk.Frame):
         self.ReaderBooksWin.title(f"№{massiv[0]} {massiv[1]} {massiv[2]}")
         id = massiv[0]
         print(massiv)
-        postgres.cursor.execute(f"""SELECT * FROM django_reader_books""")
+        postgres.cursor.execute(f"""SELECT * FROM django_reader_books WHERE reader_id={massiv[0]}""")
         books = postgres.cursor.fetchall()
 
         print(books)
@@ -219,7 +219,8 @@ class Table(tk.Frame):
         item = self.table.selection()
         massiv = self.table.item(item)['values']
         id_reader = massiv[0]
-        books = postgres.returnReaderBooks(id_reader)
+        postgres.cursor.execute(f"""SELECT * FROM django_reader_books WHERE reader_id={massiv[0]}""")
+        books = postgres.cursor.fetchall()
         self.readerBooksTable.table.delete(*self.readerBooksTable.table.get_children())
         for row in books:
             self.readerBooksTable.table.insert('', tk.END, values=tuple(row))
@@ -233,7 +234,11 @@ class Table(tk.Frame):
         item = self.table.selection()
         massiv = self.table.item(item)['values']
         id_reader = massiv[0]
-        postgres.returnPaperBook(id_reader,id_book,datereturn)
+        if massivofbooks[-1]=='Печатная':
+            SQLitecursor.execute(f"""UPDATE webapp_book SET amount=amount+1 WHERE id={id_book}""")
+        SQLiteconn.commit()
+        postgres.cursor.execute(f"DELETE FROM django_reader_books WHERE id={id_book} AND reader_id={id_reader}")
+        postgres.connect.commit()
         self.updateReaderBooksShowWin()
 
     def givBook(self):
@@ -245,8 +250,12 @@ class Table(tk.Frame):
         massiv = self.table.item(item)['values']
         id_reader = massiv[0]
         date = datetime.today() + timedelta(days=14)
-        if postgres.bookOnHand(id_reader,id_book):
+        postgres.cursor.execute(f"""SELECT * FROM django_reader_books WHERE id={massivofbooks[0]} AND reader_id={id_reader}""")
+        booksonhand = postgres.cursor.fetchall()
+        if booksonhand:
             mb.showerror(parent=self, message="Эта книга уже есть у пользователя")
+        elif massivofbooks[3] == 0:
+            mb.showerror(parent=self, message="Копий этой книги сейчас нет в библиотеке")
         else:
             if massivofbooks[-1] == 'Печатная':
                 postgres.cursor.execute(
@@ -257,7 +266,9 @@ class Table(tk.Frame):
                 SQLiteconn.commit()
                # postgres.givPaperBook(id_reader,id_book)
             else:
-                pass
-               # postgres.givElectroBook(id_reader,id_book)
+                postgres.cursor.execute(
+                    "INSERT INTO django_reader_books(id, name, author, date_return, type, reader_id) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (massivofbooks[0], massivofbooks[1], massivofbooks[2], date, massivofbooks[-1], id_reader))
+                postgres.connect.commit()
         self.updateBooksWin()
 
