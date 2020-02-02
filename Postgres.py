@@ -14,7 +14,7 @@ class Postgres:
         host = text[3].split('=')
         host = host[1].strip()
         f.close()
-        self.connect = psycopg2.connect(dbname=db, user=user, password=password, host=host)
+        self.connect = psycopg2.connect(dbname="Library", user=user, password=password, host=host)
         self.cursor = self.connect.cursor()
 
     def returnConnect(self):

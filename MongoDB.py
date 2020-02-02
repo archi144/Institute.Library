@@ -231,7 +231,7 @@ class Table(tk.Frame):
             mb.showerror(parent=self.BooksTable, message="Этот пользователь является нарушителем. Для возобновления выдачи книг ему необходимо вернуть взятые ранее книги")
         else:
             if bookOnHandsOfReader(id_reader,id_book):
-                mb.showerror(parent=self.BooksTable, message="Эта книга уже есть у пользователя")
+                mb.showerror(parent=self.BooksTable , message="Эта книга уже есть у пользователя")
             else:
                 book["datereturn"] =  datetime.datetime.utcnow() + datetime.timedelta(days=14)
                 if massivofbooks[-1] == 'Печатная':

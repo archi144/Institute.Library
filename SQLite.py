@@ -61,18 +61,19 @@ from tkinter import *
 
 def SQLiteMain():
     root = tk.Tk()
+    global SQLiteconn, SQLitecursor
     SQLiteconn = connect("/home/archi144/PycharmProjects/library.issues/source/db.sqlite3")
     SQLitecursor = SQLiteconn.cursor()
+    SQLitecursor.execute("""SELECT webapp_book.id, webapp_book.title, webapp_book.author, webapp_book.link, webapp_book.amount
+                   FROM webapp_book""")
+    massiv = SQLitecursor.fetchall()
     postgres = Postgres()
     Postgresconn = postgres.returnConnect()
     Postgrescursor = Postgresconn.cursor()
     Postgrescursor.execute("SELECT * FROM readers")
-    readers = Postgres.fetchall()
-    Postgres.execute("""SELECT webapp_book.id, webapp_book.title, webapp_book.author, webapp_book.link, webapp_book.amount
-                   FROM webapp_book""")
-    massiv = Postgres.fetchall()
+    readers = Postgrescursor.fetchall()
     table = Table(root, headings=(
-    'Читательский билет №', 'Фамилия', 'Имя', 'Отчество', 'Студ. билет', 'Срок окончания билета','Нарушитель'), rows=(massiv))
+    'Читательский билет №', 'Фамилия', 'Имя', 'Отчество', 'Студ. билет', 'Срок окончания билета','Нарушитель'), rows=(readers))
     table.pack()
     addbutton = tk.Button(root, text="Выдать читателю книгу", command=lambda: table.createBooksWin(),
                                       height=3, width=20)
@@ -149,14 +150,18 @@ class Table(tk.Frame):
     def createReaderBooksShowWin(self):
         self.ReaderBooksWin = tk.Toplevel(self)
 
+        postgres = Postgres()
         item = self.table.selection()
         massiv = self.table.item(item)['values']
         self.ReaderBooksWin.title(f"№{massiv[0]} {massiv[1]} {massiv[2]}")
-        id_reader = massiv[0]
+        id = massiv[0]
         print(massiv)
-        books = return_booksOfReader(id_reader)
+        postgres.cursor.execute(f"""SELECT * FROM django_reader_books""")
+        books = postgres.cursor.fetchall()
+
+        print(books)
         self.readerBooksTable = Table(self.ReaderBooksWin, headings=(
-            'ID','Название книги', 'Автор','Ссылка на книгу', 'Тип книги','Дата возврата',),
+            'ID','Название книги', 'Автор','Дата возврата книги', 'Тип книги',),
                                 rows=(books))
         returnBookButton = tk.Button(self.ReaderBooksWin, text="Принять книгу", command=self.returnBook, height=3,
                                   width=15)
@@ -165,12 +170,18 @@ class Table(tk.Frame):
 
     def createBooksWin(self):
         self.BooksWin = tk.Toplevel(self)
-
-        books = return_collection('books')
+        postgres = Postgres()
+        books = postgres.returnAllBooks()
         print(books)
         item = self.table.selection()
         massiv = self.table.item(item)['values']
         self.BooksWin.title(f"№{massiv[0]} {massiv[1]} {massiv[2]}")
+        SQLiteconn = connect("/home/archi144/PycharmProjects/library.issues/source/db.sqlite3")
+        SQLitecursor = SQLiteconn.cursor()
+        SQLitecursor.execute("""SELECT webapp_book.id, webapp_book.title, webapp_book.author, 
+                                    webapp_book.amount, webapp_book.link, webapp_book.type
+                           FROM webapp_book""")
+        books = SQLitecursor.fetchall()
         self.BooksTable = Table(self.BooksWin, headings=(
             'ID', 'Название книги', 'Автор', 'Количество', 'Ссылка', 'Тип',),
                       rows=(books))
@@ -181,67 +192,72 @@ class Table(tk.Frame):
 
 
     def update(self):
-        users = return_collection('readers')
+        postgres = Postgres()
+        conn = postgres.returnConnect()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users")
+        users = cursor.fetchall()
         self.table.delete(*self.table.get_children())
         for row in users:
             self.table.insert('', tk.END, values=tuple(row))
 
     def updateBooksWin(self):
-        books = return_collection('books')
+        postgres = Postgres()
+        SQLiteconn = connect("/home/archi144/PycharmProjects/library.issues/source/db.sqlite3")
+        SQLitecursor = SQLiteconn.cursor()
+        SQLitecursor.execute("""SELECT webapp_book.id, webapp_book.title, webapp_book.author, 
+                                            webapp_book.amount, webapp_book.link, webapp_book.type
+                                   FROM webapp_book""")
+        books = SQLitecursor.fetchall()
         print(books)
         self.BooksTable.table.delete(*self.BooksTable.table.get_children())
         for row in books:
             self.BooksTable.table.insert('', tk.END, values=tuple(row))
 
     def updateReaderBooksShowWin(self):
+        postgres = Postgres()
         item = self.table.selection()
         massiv = self.table.item(item)['values']
         id_reader = massiv[0]
-        books = return_booksOfReader(id_reader)
+        books = postgres.returnReaderBooks(id_reader)
         self.readerBooksTable.table.delete(*self.readerBooksTable.table.get_children())
         for row in books:
             self.readerBooksTable.table.insert('', tk.END, values=tuple(row))
 
     def returnBook(self):
+        postgres = Postgres()
         item = self.readerBooksTable.table.selection()
         massivofbooks = self.readerBooksTable.table.item(item)['values']
         id_book = massivofbooks[0]
-        datereturn = massivofbooks[-1]
+        datereturn = massivofbooks[3]
         item = self.table.selection()
         massiv = self.table.item(item)['values']
         id_reader = massiv[0]
-        book = db.books.find_one({"id": id_book}, {"_id": 0, "count": 0})
-        if datetime.datetime.utcnow() > datetime.datetime.strptime(datereturn,"%Y-%m-%d %H:%M:%S.%f"):
-            mb.showerror(parent=self.readerBooksTable,message="Возврат книги просрочен, пользователь объявлен нарушителем")
-            if readerClear(id_reader):
-                db.readers.update({"id":id_reader},{"$set":{"violator":True}})
-                self.update()
-                sleep(1)
-        db.readers.update({'id': id_reader}, {"$pull": {"books": book}})
-        if massivofbooks[-2] == 'Печатная':
-            db.books.update({'id': id_book}, {"$inc": {"count": +1}})
+        postgres.returnPaperBook(id_reader,id_book,datereturn)
         self.updateReaderBooksShowWin()
 
     def givBook(self):
+        postgres = Postgres()
         item = self.BooksTable.table.selection()
         massivofbooks = self.BooksTable.table.item(item)['values']
         id_book = massivofbooks[0]
         item = self.table.selection()
         massiv = self.table.item(item)['values']
         id_reader = massiv[0]
-        book = db.books.find_one({"id": id_book}, {"_id": 0, "count": 0})
-        if isReaderViolator(id_reader):
-            mb.showerror(parent=self.BooksTable, message="Этот пользователь является нарушителем. Для возобновления выдачи книг ему необходимо вернуть взятые ранее книги")
+        date = datetime.today() + timedelta(days=14)
+        if postgres.bookOnHand(id_reader,id_book):
+            mb.showerror(parent=self, message="Эта книга уже есть у пользователя")
         else:
-            if bookOnHandsOfReader(id_reader,id_book):
-                mb.showerror(parent=self.BooksTable, message="Эта книга уже есть у пользователя")
+            if massivofbooks[-1] == 'Печатная':
+                postgres.cursor.execute(
+                    "INSERT INTO django_reader_books(id, name, author, date_return, type, reader_id) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (massivofbooks[0], massivofbooks[1], massivofbooks[2], date, massivofbooks[-1], id_reader))
+                postgres.connect.commit()
+                SQLitecursor.execute(f"""UPDATE webapp_book SET amount=amount-1 WHERE id={id_book}""")
+                SQLiteconn.commit()
+               # postgres.givPaperBook(id_reader,id_book)
             else:
-                book["datereturn"] =  datetime.datetime.utcnow() + datetime.timedelta(days=14)
-                if massivofbooks[-1] == 'Печатная':
-                    db.readers.update({'id': id_reader}, {"$push": {"books": book}})
-                    db.books.update({'id': id_book}, {"$inc": {"count": -1}})
-                else:
-                    book = db.books.find_one({"id": id_book}, {"_id": 0, "count": 0})
-                    db.readers.update({'id': id_reader}, {"$push": {"books": book}})
-                self.updateBooksWin()
+                pass
+               # postgres.givElectroBook(id_reader,id_book)
+        self.updateBooksWin()
 
